@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  traefik:
+      image: traefik:v2.9.8
+      container_name: router_traefik
+      ports:
+          - "80:80"
+          - "443:443"
+      volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - ./services/traefik/traefik.toml:/etc/traefik/traefik.toml
+          - ./acme.json:/acme.json
+
+  platzi_fastapi:
+      container_name: platzi_fastapi
+      build:
+        context: ./services/platzi_fastapi_sql
+      command: uvicorn main:api --host 0.0.0.0 --port ${PLATZI_PORT}
+      restart: always
+      labels:
+          - "traefik.enable=true"
+          - "traefik.http.routers.platzi.rule=Host(`${PLATZI_DOMAIN}`)"
+          - "traefik.http.services.platzi.loadbalancer.server.port=${PLATZI_PORT}"
+          - "traefik.http.routers.platzi.entrypoints=websecure"
+          - "traefik.http.routers.platzi.tls.certresolver=letsencrypt"
+      environment:
+          - TZ=America/Bogota
+          - API_VERSION=${PLATZI_VERSION}
+
