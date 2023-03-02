@@ -16,7 +16,7 @@ services:
       container_name: platzi_fastapi
       build:
         context: ./services/platzi_fastapi_sql
-      command: uvicorn main:api --host 0.0.0.0 --port ${PLATZI_PORT}
+      command: ["./scripts/wait-for-it.sh", "pgsql_farm:5432", "--", "uvicorn", "main:api", "--host", "0.0.0.0", "--port", "8082"]
       restart: always
       labels:
           - "traefik.enable=true"
@@ -28,3 +28,21 @@ services:
           - TZ=America/Bogota
           - API_VERSION=${PLATZI_VERSION}
 
+  pgsql_farm:
+      image: postgres:15.2
+      container_name: pgsql_farm
+      restart: always
+      volumes:
+          - db_farm:/var/lib/postgresql/data/
+          - ./scripts/db-init_sql.sh:/docker-entrypoint-initdb.d/db-init_sql.sh
+      expose:
+          - ${DB_PORT}
+      environment:
+          - POSTGRES_PASSWORD=${DB_PASS}
+          - POSTGRES_USER=${DB_USER}
+          # Databases
+          - FARM_DB=${DB_NAME_FARM}
+          - PLATZI_DB=${DB_NAME_PLATZI}
+
+volumes:
+    db_farm:       

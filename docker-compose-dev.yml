@@ -17,7 +17,7 @@ services:
     build:
       context: ./services/platzi_fastapi_sql
       dockerfile: Dockerfile.dev
-    command: uvicorn main:api --host 0.0.0.0 --port ${PLATZI_PORT_DEV} --reload
+    command: ["/wait-for-it.sh", "pgsql_farm:5432", "--", "uvicorn", "main:api", "--host", "0.0.0.0", "--port", "5000", "--reload"]
     restart: always
     volumes:
       -  ./services/platzi_fastapi_sql:/platzi
@@ -32,3 +32,23 @@ services:
       - API_VERSION=${PLATZI_VERSION}
       - MODE=development
       - DEBUG=true
+      - DB_URL=postgresql://${DB_USER}:${DB_PASS}@pgsql_farm:${DB_PORT}/${DB_NAME_PLATZI}
+
+  pgsql_farm:
+    image: postgres:15.2
+    container_name: pgsql_farm
+    restart: always
+    volumes:
+      - db_farm:/var/lib/postgresql/data/
+      - ./scripts/db-init_sql.sh:/docker-entrypoint-initdb.d/db-init_sql.sh
+    expose:
+      - ${DB_PORT}
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+      # Databases
+      - FARM_DB=${DB_NAME_FARM}
+      - PLATZI_DB=${DB_NAME_PLATZI}
+
+volumes:
+  db_farm:
