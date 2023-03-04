@@ -27,6 +27,7 @@ services:
       environment:
           - TZ=America/Bogota
           - API_VERSION=${PLATZI_VERSION}
+          - DB_URL=postgresql://${DB_USER}:${DB_PASS}@pgsql_farm:${DB_PORT}/${DB_NAME_PLATZI}
 
   pgsql_farm:
       image: postgres:15.2
